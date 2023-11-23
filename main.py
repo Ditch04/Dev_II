@@ -1,54 +1,55 @@
-import random
-
-
-class FlashCard:
-    def __init__(self, question, answer):
-        self.question = question
-        self.answer = answer
-
-
-class FlashCardGame:
-    def __init__(self):
-        self.flashcards = []
-        self.current_card_index = 0
-
-    def add_flashcard(self, flashcard):
-        self.flashcards.append(flashcard)
-
-    def draw_card(self):
-        if self.current_card_index < len(self.flashcards):
-            card = self.flashcards[self.current_card_index]
-            self.current_card_index += 1
-            return card
-        else:
-            return None
-
-    def play(self):
-        while True:
-            card = self.draw_card()
-            if card is None:
-                print("Vous avez vu toutes les cartes.")
-                break
-
-            input("Appuyez sur 'enter' pour voir la question...")
-            print(card.question)
-
-            input("Appuyez sur 'enter' pour voir la réponse...")
-            print(card.answer)
-
-            choice = input("Voulez-vous tirer une nouvelle carte ? (Oui/Non): ")
-            if choice.lower() != 'oui':
-                break
-
+from Fractions import Fraction
 
 if __name__ == "__main__":
-    game = FlashCardGame()
 
+    frac1 = Fraction(1, 4)
+    frac2 = Fraction(12, 8)
+    frac3 = Fraction(-1, 6)
+    frac4 = Fraction(1, 3)
 
-game.add_flashcard(FlashCard("Quelle est la capitale de la Belgique ?", "Bruxelles"))
-game.add_flashcard(FlashCard("Question 2", "Réponse 2"))
-game.add_flashcard(FlashCard("Question 3", "Réponse 3"))
+    try:
+        frac = Fraction(2, 0)
+        print(frac)
+    except ZeroDivisionError as e:
+        print(e)
 
-random.shuffle(game.flashcards)
+    try:
+        frac = Fraction(2, 4)
+        print(frac + 's')
+    except TypeError as e:
+        print(e)
 
-game.play()
+    print(str(frac1) + "\n")
+    print(frac1.as_mixed_number() + "\n")
+    print(frac2.as_mixed_number() + "\n")
+    print(str(frac2) + "\n")
+
+    try:
+        frac = 'bonjour'
+        print(frac1 - frac)
+    except TypeError as e:
+        print(e)
+
+    try:
+        frac = Fraction(3, 0)
+        print(frac * frac2)
+    except ZeroDivisionError as e:
+        print(e)
+
+    print(f"{frac1} + {frac2} = {frac1 + frac2}\n")
+
+    print(f"{frac2} - {frac1} = {frac2 - frac1}\n")
+
+    print(f"{frac1} * {frac2} = {frac1 * frac2}\n")
+
+    print(f"{frac1} / {frac2} = {frac1 / frac2}\n")
+
+    print(f"{frac1 ** 2}\n")
+
+    print(f"{frac1 == frac2}\n")
+
+    print(f"{float(frac1)}\n")
+
+    print(frac1.is_adjacent_to(frac4))
+
+    print(Fraction(1, 2) + Fraction(-1, 2))
