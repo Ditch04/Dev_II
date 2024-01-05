@@ -1,75 +1,112 @@
-
 import argparse
-from FlashCardGame import FlashCardGame
-import tkinter as tk
-from tkinter import ttk
-from ttkbootstrap import Style
+import json
+import sys
+
+from tabulate import tabulate
 
 
-if __name__ == "__main__":
-    game = FlashCardGame()
-    game.play()
-    game.end_game()
-
-    root = tk.Tk()
-    root.title('Flashcards App')
-    root.geometry('500x400')
-
-    style = Style(theme='superhero')
-    style.configure('TLabel', font=('TkDefaultFont', 18))
-    style.configure('TButton', font=('TkDefaultFont', 16))
-
-    set_name_var = tk.StringVar()
-    word_var = tk.StringVar()
-    definition_var = tk.StringVar()
-    answer_var = tk.StringVar()
-
-    notebook = ttk.Notebook(root)
-    notebook.pack(fill='both', expand=True)
-
-    create_set_frame = ttk.Frame(notebook)
-    notebook.add(create_set_frame, text="Créer une pile")
-
-    ttk.Label(create_set_frame, text="Définir le nom de la pile:").pack(padx=5, pady=5)
-    ttk.Entry(create_set_frame, textvariable=set_name_var, width=30).pack(padx=5, pady=5)
-
-    ttk.Label(create_set_frame, text='Question:').pack(padx=5, pady=5)
-    ttk.Entry(create_set_frame, textvariable=word_var, width=30).pack(padx=5, pady=5)
-
-    ttk.Label(create_set_frame, text='Réponse:').pack(padx=5, pady=5)
-    ttk.Entry(create_set_frame, textvariable=definition_var, width=30).pack(padx=5, pady=5)
-
-    ttk.Button(create_set_frame, text='Ajouter une carte').pack(padx=5, pady=10)
-
-    ttk.Button(create_set_frame, text='Sauvegarder').pack(padx=5, pady=10)
-
-    select_set_frame = ttk.Frame(notebook)
-    notebook.add(select_set_frame, text='Sélectionner une pile')
-
-    sets_combobox = ttk.Combobox(select_set_frame, state='readonly')
-    sets_combobox.pack(padx=5, pady=5)
-
-    ttk.Button(select_set_frame, text='Sélectionner une pile').pack(padx=5, pady=5)
-    ttk.Button(select_set_frame, text='Supprimer une pile').pack(padx=5, pady=5)
-
-    flashcards_frame = ttk.Frame(notebook)
-    notebook.add(flashcards_frame, text='Jouer !')
-
-    word_label = ttk.Label(flashcards_frame, text='', font=('TkDefaultFont', 24))
-    word_label.pack(padx=5, pady=40)
-
-    definition_label = ttk.Label(flashcards_frame, text='')
-    definition_label.pack(padx=5, pady=5)
-
-    ttk.Entry(flashcards_frame, textvariable=answer_var, width=30).pack(padx=5, pady=5)
-
-    ttk.Button(flashcards_frame, text='Valider la réponse').pack(side='left', padx=5, pady=5)
-
-    ttk.Button(flashcards_frame, text='Retourner la carte').pack(side='left', padx=5, pady=5)
-
-    ttk.Button(flashcards_frame, text='Carte suivante').pack(side='right', padx=5, pady=5)
-
-    root.mainloop()
+def fileopen(file_path):
+    try:
+        with open(file_path, 'r') as file:
+            ballers = json.load(file)
+        return ballers
+    except FileNotFoundError:
+        raise FileNotFoundError('File not found')
 
 
+def find_best_scorer(ballers):
+    ballers_sorted = sorted(ballers, key=lambda x: float(x['ppg']), reverse=True)
+    best_scorer = ballers_sorted[0] if ballers_sorted else None
+    best_scorer['name'] += ' *'
+    return best_scorer
 
+
+def find_best_shooter(ballers):
+    ballers_sorted = sorted(ballers, key=lambda x: float(x['fg%']), reverse=True)
+    best_shooter = ballers_sorted[0] if ballers_sorted else None
+    best_shooter['name'] += ' $'
+    return best_shooter
+
+
+def display_on_post(ballers, post):
+    if post:
+        ballers_filtered = [i for i in ballers if i["position"] == post]
+        return ballers_filtered
+    return ballers
+
+
+def min_points(ballers, min):
+    if min is not None:
+        ballers = [baller for baller in ballers if baller.get('total_points', 0) >= min]
+    return ballers
+
+
+def order_by(ballers, key):
+    if key:
+        for baller in ballers:
+            value = baller.get(key)
+            if isinstance(value, (int, float)):
+                ballers = sorted(ballers, key=lambda x: x.get(key, 0), reverse=True)
+            else:
+                ballers = sorted(ballers, key=lambda x: x.get(key, 0))
+    return ballers
+
+
+def select_info(ballers, selection):
+    if selection:
+        ballers = [{info: baller.get(info, 'N/A') for info in selection} for baller in ballers]
+    return ballers
+
+
+def create_tab(ballers):
+    if ballers:
+        headers = ballers[0].keys()
+        tab = [list(baller.values()) for baller in ballers]
+        table = (tabulate(tab, headers, tablefmt='grid'))
+        print(table)
+
+
+def write_in_file(ballers, output_file):
+    with open(output_file, 'w') as out_file:
+        for baller in ballers:
+            out_file.write(str(baller) + '\n')
+
+
+def parse_args(args):
+    parser = argparse.ArgumentParser(description='Baller')
+    parser.add_argument('-i', '--input', type=str, required=True, help='Chemin vers le fichier json de joueurs')
+    parser.add_argument('-o', '--output', type=str, required=True, help='Chemin vers le fichier texte de sortie')
+    parser.add_argument('--order', type=str, help='Trier selon la catégorie demandée')
+    parser.add_argument('--position', type=str, help='N\'affiche que les joueurs jouant à ce poste')
+    parser.add_argument('--select', type=str, nargs='+', help='Informations sur le joueur à afficher')
+    parser.add_argument('--min_points', type=int,
+                        help='Ne garde que les joueurs ayant marqué au moins ce nombre de points')
+
+    return parser.parse_args(args)
+
+
+def main():
+
+    args = parse_args(sys.argv[1:])
+
+    ballers = fileopen(args.input)
+
+    find_best_shooter(ballers)
+
+    find_best_scorer(ballers)
+
+    ballers = order_by(ballers, args.order)
+
+    ballers = display_on_post(ballers, args.position)
+
+    ballers = min_points(ballers, args.min_points)
+
+    ballers = select_info(ballers, args.select)
+
+    create_tab(ballers)
+
+    write_in_file(ballers, args.output)
+
+
+if __name__ == '__main__':
+    main()
